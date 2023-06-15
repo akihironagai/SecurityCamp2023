@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 
-from opaque import Opaque
+from variable import Variable
 
 
 class HandshakeType(IntEnum):
@@ -33,7 +33,7 @@ class Handshake:
     def length(self):
         return len(bytes(self.msg)).to_bytes(3, "big")
 
-    msg: Opaque
+    msg: Variable
 
     def __bytes__(self):
         return bytes(self.msg_type) + self.length + bytes(self.msg)

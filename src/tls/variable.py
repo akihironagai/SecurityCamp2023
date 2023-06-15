@@ -1,5 +1,5 @@
-class Opaque:
-    """Opaque data type."""
+class Variable:
+    """Variable data type."""
 
     def __init__(self, data: bytes | list[bytes] = b"", length_field: int = 0):
         if isinstance(data, bytes):
