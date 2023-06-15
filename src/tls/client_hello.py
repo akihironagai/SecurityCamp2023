@@ -14,15 +14,13 @@ class ClientHello:
     random = os.urandom(32)
     legacy_session_id = Opaque()
     cipher_suites = Opaque(
-        data=b"".join(
-            [
-                bytes(CipherSuite.TLS_AES_128_GCM_SHA256),
-                bytes(CipherSuite.TLS_AES_256_GCM_SHA384),
-                bytes(CipherSuite.TLS_CHACHA20_POLY1305_SHA256),
-                bytes(CipherSuite.TLS_AES_128_CCM_SHA256),
-                bytes(CipherSuite.TLS_AES_128_CCM_8_SHA256),
-            ]
-        ),
+        data=[
+            bytes(CipherSuite.TLS_AES_128_GCM_SHA256),
+            bytes(CipherSuite.TLS_AES_256_GCM_SHA384),
+            bytes(CipherSuite.TLS_CHACHA20_POLY1305_SHA256),
+            bytes(CipherSuite.TLS_AES_128_CCM_SHA256),
+            bytes(CipherSuite.TLS_AES_128_CCM_8_SHA256),
+        ],
         length_field=2,
     )
     legacy_compression_methods = Opaque(
@@ -30,10 +28,8 @@ class ClientHello:
     )
     # TODO: more extensions
     extension = Opaque(
-        data=b"".join(
-            [
-                bytes(SupportedVersions()),
-            ]
-        ),
+        data=[
+            bytes(SupportedVersions()),
+        ],
         length_field=2,
     )

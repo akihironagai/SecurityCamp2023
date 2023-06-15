@@ -1,8 +1,11 @@
 class Opaque:
     """Opaque data type."""
 
-    def __init__(self, data: bytes = b"", length_field: int = 0):
-        self.data = data
+    def __init__(self, data: bytes | list[bytes] = b"", length_field: int = 0):
+        if isinstance(data, bytes):
+            self.data = data
+        else:
+            self.data = b"".join(data)
         self.length_field = length_field
 
     def __bytes__(self):

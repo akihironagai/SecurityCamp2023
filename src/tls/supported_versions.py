@@ -8,6 +8,4 @@ class SupportedVersions(Extension):
     """Supported versions extension."""
 
     extension_type = ExtensionType.SUPPORTED_VERSIONS
-    extension_data = Opaque(
-        data=b"".join([bytes(ProtocolVersion.TLS_1_3)]), length_field=2
-    )
+    extension_data = Opaque(data=[bytes(ProtocolVersion.TLS_1_3)], length_field=2)
