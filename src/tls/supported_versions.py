@@ -8,4 +8,7 @@ class SupportedVersions(Extension):
     """Supported versions extension."""
 
     extension_type = ExtensionType.SUPPORTED_VERSIONS
-    extension_data = Variable(data=[bytes(ProtocolVersion.TLS_1_3)], length_field=2)
+    extension_data = Variable(
+        data=bytes(Variable(data=[bytes(ProtocolVersion.TLS_1_3)], length_field=1)),
+        length_field=2,
+    )
