@@ -39,11 +39,11 @@ class AlertDescription(IntEnum):
 
 @dataclass
 class Alert:
-    level: AlertLevel
-    description: AlertDescription
-
     Level = AlertLevel
     Description = AlertDescription
+
+    level: Level
+    description: Description
 
     def __bytes__(self):
         level = self.level.to_bytes()
@@ -57,9 +57,10 @@ class Alert:
         return cls(level, description)
 
     @staticmethod
+    def to_bytes(alert):
+        return bytes(alert)
+
+    @staticmethod
     def parse(data: bytes):
         return Alert.from_bytes(data)
 
-    @staticmethod
-    def to_bytes(alert):
-        return bytes(alert)
