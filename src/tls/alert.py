@@ -42,6 +42,9 @@ class Alert:
     level: AlertLevel
     description: AlertDescription
 
+    Level = AlertLevel
+    Description = AlertDescription
+
     def __bytes__(self):
         level = self.level.to_bytes()
         description = self.description.to_bytes()
@@ -49,6 +52,14 @@ class Alert:
 
     @classmethod
     def from_bytes(cls, data: bytes):
-        level = AlertLevel(data[0])
-        description = AlertDescription(data[1])
+        level = cls.Level(data[0])
+        description = cls.Description(data[1])
         return cls(level, description)
+
+    @staticmethod
+    def parse(data: bytes):
+        return Alert.from_bytes(data)
+
+    @staticmethod
+    def to_bytes(alert):
+        return bytes(alert)
