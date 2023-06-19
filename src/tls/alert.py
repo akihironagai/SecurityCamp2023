@@ -63,4 +63,3 @@ class Alert:
     @staticmethod
     def parse(data: bytes):
         return Alert.from_bytes(data)
-
