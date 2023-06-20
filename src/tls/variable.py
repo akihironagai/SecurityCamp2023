@@ -7,7 +7,7 @@ T = TypeVar("T", bound=SupportsBytes)
 @dataclass
 class Variable(Generic[T]):
     data: T | Sequence[T]
-    length_in_bytes: int
+    length_in_bytes: int = 1
 
     def __bytes__(self):
         length = self.length_in_bytes
