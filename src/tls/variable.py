@@ -11,7 +11,9 @@ class Variable(Generic[T]):
 
     def __bytes__(self):
         length = self.length_in_bytes
-        if isinstance(self.data, Sequence):
+        if isinstance(self.data, bytes):
+            data = self.data
+        elif isinstance(self.data, Sequence):
             data = b"".join(bytes(d) for d in self.data)
         else:
             data = bytes(self.data)
