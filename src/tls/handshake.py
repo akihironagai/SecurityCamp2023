@@ -1,7 +1,13 @@
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Protocol, Sequence, SupportsBytes
+from typing import Any, Protocol, Sequence
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import dh, ec, x448, x25519
+from cryptography.hazmat.primitives.asymmetric.types import (
+    PrivateKeyTypes,
+    PublicKeyTypes,
+)
 from protocol_version import ProtocolVersion
 from variable import Variable
 
@@ -118,12 +124,10 @@ class Extension(Protocol):
     """Extensions (RFC 8446 Section 4.2)"""
 
     extension_type: ExtensionType
-    extension_data: SupportsBytes | Variable[SupportsBytes]
+    extension_data: Any
 
-    def __bytes__(self):
-        type = bytes(self.extension_type)
-        data = bytes(Variable(self.extension_data, 2))
-        return type + data
+    def __bytes__(self) -> bytes:
+        ...
 
 
 @dataclass
@@ -139,15 +143,29 @@ class ServerNameList(Extension):
             return b"\x00" + host_name
 
     extension_type = ExtensionType.SERVER_NAME
-    extension_data: Variable[ServerName]
+    extension_data: Sequence[ServerName]
+
+    def __bytes__(self):
+        type = bytes(self.extension_type)
+        names = b"".join(bytes(name) for name in self.extension_data)
+        return type + bytes(Variable(names, 2))
 
 
 @dataclass
 class SupportedVersions(Extension):
     """Supported Versions Extension (RFC 8446 Section 4.2.1)"""
 
+    Version = ProtocolVersion
+
     extension_type = ExtensionType.SUPPORTED_VERSIONS
-    extension_data: ProtocolVersion | Variable[ProtocolVersion]
+    extension_data: Version | Sequence[Version]
+
+    def __bytes__(self):
+        type = bytes(self.extension_type)
+
+        if isinstance(self.extension_data, self.Version):
+            return type + bytes(self.extension_data)
+        return type + bytes(Variable(bytes(Variable(self.extension_data, 1)), 2))
 
 
 @dataclass
@@ -155,7 +173,12 @@ class SignatureAlgorithms(Extension):
     """Signature Algorithms Extension (RFC 8446 Section 4.2.3)"""
 
     extension_type = ExtensionType.SIGNATURE_ALGORITHMS
-    extension_data: Variable[SignatureScheme]
+    extension_data: Sequence[SignatureScheme]
+
+    def __bytes__(self):
+        type = bytes(self.extension_type)
+        data = bytes(Variable(self.extension_data, 2))
+        return type + data
 
 
 @dataclass
@@ -163,7 +186,102 @@ class SupportedGroups(Extension):
     """Supported Groups Extension (RFC 8446 Section 4.2.7)"""
 
     extension_type = ExtensionType.SUPPORTED_GROUPS
-    extension_data: Variable[NamedGroup]
+    extension_data: Sequence[NamedGroup]
+
+    def __bytes__(self):
+        type = bytes(self.extension_type)
+        data = bytes(Variable(self.extension_data, 2))
+        return type + data
+
+
+@dataclass
+class KeyShare(Extension):
+    """Key Share Extension (RFC 8446 Section 4.2.8)"""
+
+    @dataclass
+    class KeyShareEntry:
+        key_exchange: PrivateKeyTypes | PublicKeyTypes
+
+        def __bytes__(self):
+            DHKey = dh.DHPrivateKey | dh.DHPublicKey
+            ECKey = ec.EllipticCurvePrivateKey | ec.EllipticCurvePublicKey
+            X25519Key = x25519.X25519PrivateKey | x25519.X25519PublicKey
+            X448Key = x448.X448PrivateKey | x448.X448PublicKey
+
+            SECP256R1 = NamedGroup.SECP256R1
+            SECP384R1 = NamedGroup.SECP384R1
+            SECP521R1 = NamedGroup.SECP521R1
+            X25519 = NamedGroup.X25519
+            X448 = NamedGroup.X448
+
+            FFDHE2048 = NamedGroup.FFDHE2048
+            FFDHE3072 = NamedGroup.FFDHE3072
+            FFDHE4096 = NamedGroup.FFDHE4096
+            FFDHE6144 = NamedGroup.FFDHE6144
+            FFDHE8192 = NamedGroup.FFDHE8192
+
+            group: NamedGroup
+            key = self.key_exchange
+
+            if isinstance(key, DHKey):
+                match key.key_size:
+                    case 2048:
+                        group = FFDHE2048
+                    case 3072:
+                        group = FFDHE3072
+                    case 4096:
+                        group = FFDHE4096
+                    case 6144:
+                        group = FFDHE6144
+                    case 8192:
+                        group = FFDHE8192
+                    case _:
+                        raise ValueError(f"Unsupported key size: {key.key_size}")
+                if isinstance(key, PrivateKeyTypes):
+                    key = key.public_key()
+                p = key.parameters().parameter_numbers().p
+                y = key.public_numbers().y
+                key = y.to_bytes((p.bit_length() + 7) // 8)
+            elif isinstance(key, ECKey):
+                if isinstance(key.curve, ec.SECP256R1):
+                    group = SECP256R1
+                elif isinstance(key.curve, ec.SECP384R1):
+                    group = SECP384R1
+                elif isinstance(key.curve, ec.SECP521R1):
+                    group = SECP521R1
+                else:
+                    raise ValueError(f"Unsupported curve: {key.curve.name}")
+                if isinstance(key, ec.EllipticCurvePrivateKey):
+                    key = key.public_key()
+                key = key.public_bytes(
+                    encoding=serialization.Encoding.X962,
+                    format=serialization.PublicFormat.UncompressedPoint,
+                )
+            elif isinstance(key, (X25519Key, X448Key)):
+                group = X25519 if isinstance(key, X25519Key) else X448
+                if isinstance(key, PrivateKeyTypes):
+                    key = key.public_key()
+                key = key.public_bytes(
+                    encoding=serialization.Encoding.Raw,
+                    format=serialization.PublicFormat.Raw,
+                )
+            else:
+                raise TypeError(f"Unsupported key type: {type(key)}")
+            return bytes(group) + key
+
+    extension_type = ExtensionType.KEY_SHARE
+    extension_data: Sequence[PrivateKeyTypes] | NamedGroup | PublicKeyTypes
+
+    def __bytes__(self):
+        type = bytes(self.extension_type)
+        data = self.extension_data
+        if isinstance(data, NamedGroup):
+            data = bytes(data)
+        elif isinstance(data, PublicKeyTypes):
+            data = bytes(self.KeyShareEntry(data))
+        else:
+            data = b"".join(bytes(self.KeyShareEntry(key)) for key in data)
+        return type + bytes(data)
 
 
 @dataclass
