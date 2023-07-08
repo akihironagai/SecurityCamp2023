@@ -1,29 +1,22 @@
 from dataclasses import dataclass
-from enum import IntEnum
 from typing import Literal, Self
 
-from protocol_version import ProtocolVersion
-
-
-class ContentType(IntEnum):
-    INVALID = 0
-    CHANGE_CIPHER_SPEC = 20
-    ALERT = 21
-    HANDSHAKE = 22
-    APPLICATION_DATA = 23
-
-    def __bytes__(self):
-        return self.to_bytes(1)
+from const import ContentType, ProtocolVersion
 
 
 @dataclass
 class Record:
-    Type = ContentType
-    RecordVersion = ProtocolVersion
-
-    type: Type
-    legacy_record_version: Literal[RecordVersion.TLS_1_0, RecordVersion.TLS_1_2]
+    type: ContentType
+    legacy_record_version: Literal[ProtocolVersion.TLS_1_0, ProtocolVersion.TLS_1_2]
     fragment: bytes
+
+    def __bytes__(self):
+        return (
+            bytes(self.type)
+            + bytes(self.legacy_record_version)
+            + len(self.fragment).to_bytes(2, "big")
+            + self.fragment
+        )
 
     @classmethod
     def from_bytes(cls, data: bytes):
@@ -32,11 +25,11 @@ class Record:
         while True:
             if len(data) < 5:
                 raise ValueError("Invalid record length")
-            type = cls.Type(rest[0])
-            legacy_record_version = cls.RecordVersion.from_bytes(rest[1:3])
+            type = ContentType(rest[0])
+            legacy_record_version = ProtocolVersion.from_bytes(rest[1:3])
             if (
-                legacy_record_version != cls.RecordVersion.TLS_1_0
-                and legacy_record_version != cls.RecordVersion.TLS_1_2
+                legacy_record_version != ProtocolVersion.TLS_1_0
+                and legacy_record_version != ProtocolVersion.TLS_1_2
             ):
                 raise ValueError("Invalid legacy record version")
             length = int.from_bytes(rest[3:5])
