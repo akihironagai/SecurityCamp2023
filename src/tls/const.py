@@ -146,6 +146,24 @@ class NamedGroup(IntEnum):
     FFDHE6144 = 0x0103
     FFDHE8192 = 0x0104
 
+    # GREASE (RFC 8701)
+    GREASE_0A = 0x0A0A
+    GREASE_1A = 0x1A1A
+    GREASE_2A = 0x2A2A
+    GREASE_3A = 0x3A3A
+    GREASE_4A = 0x4A4A
+    GREASE_5A = 0x5A5A
+    GREASE_6A = 0x6A6A
+    GREASE_7A = 0x7A7A
+    GREASE_8A = 0x8A8A
+    GREASE_9A = 0x9A9A
+    GREASE_AA = 0xAAAA
+    GREASE_BA = 0xBABA
+    GREASE_CA = 0xCACA
+    GREASE_DA = 0xDADA
+    GREASE_EA = 0xEAEA
+    GREASE_FA = 0xFAFA
+
     def __bytes__(self):
         return self.to_bytes(2)
 
@@ -156,6 +174,24 @@ class ProtocolVersion(IntEnum):
     TLS_1_1 = 0x0302
     TLS_1_2 = 0x0303
     TLS_1_3 = 0x0304
+
+    # GREASE (RFC 8701)
+    GREASE_0A = 0x0A0A
+    GREASE_1A = 0x1A1A
+    GREASE_2A = 0x2A2A
+    GREASE_3A = 0x3A3A
+    GREASE_4A = 0x4A4A
+    GREASE_5A = 0x5A5A
+    GREASE_6A = 0x6A6A
+    GREASE_7A = 0x7A7A
+    GREASE_8A = 0x8A8A
+    GREASE_9A = 0x9A9A
+    GREASE_AA = 0xAAAA
+    GREASE_BA = 0xBABA
+    GREASE_CA = 0xCACA
+    GREASE_DA = 0xDADA
+    GREASE_EA = 0xEAEA
+    GREASE_FA = 0xFAFA
 
     def __bytes__(self):
         return self.to_bytes(2)

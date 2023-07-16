@@ -16,10 +16,32 @@ class Buffer:
     def capacity(self) -> int:
         return len(self.buffer)
 
-    def pull_bytes(self, length: int) -> bytes:
+    def peek_bytes(self, length: int) -> bytes:
         result = self.buffer[:length]
-        del self.buffer[:length]
         return bytes(result)
+    
+    def peek_uint(self, length: int) -> int:
+        return int.from_bytes(self.peek_bytes(length), "big")
+
+    def peek_uint8(self) -> int:
+        return self.peek_uint(1)
+    
+    def peek_uint16(self) -> int:
+        return self.peek_uint(2)
+    
+    def peek_uint24(self) -> int:
+        return self.peek_uint(3)
+    
+    def peek_uint32(self) -> int:
+        return self.peek_uint(4)
+
+    def peek_uint64(self) -> int:
+        return self.peek_uint(8)
+
+    def pull_bytes(self, length: int) -> bytes:
+        result = self.peek_bytes(length)
+        del self.buffer[:length]
+        return result
 
     def pull_uint(self, length: int) -> int:
         return int.from_bytes(self.pull_bytes(length), "big")
