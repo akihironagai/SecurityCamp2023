@@ -45,7 +45,7 @@ class AlertLevel(IntEnum):
     FATAL = 2
 
     def __bytes__(self):
-        return self.to_bytes()
+        return self.to_bytes(1, "big")
 
 
 @unique
@@ -59,7 +59,7 @@ class CipherSuite(IntEnum):
     TLS_AES_128_CCM_8_SHA256 = 0x1305
 
     def __bytes__(self):
-        return self.to_bytes(2)
+        return self.to_bytes(2, "big")
 
 
 @unique
@@ -74,7 +74,7 @@ class ContentType(IntEnum):
     HEARTBEAT = 24
 
     def __bytes__(self):
-        return self.to_bytes(1)
+        return self.to_bytes(1, "big")
 
 
 @unique
@@ -105,7 +105,7 @@ class ExtensionType(IntEnum):
     KEY_SHARE = 51
 
     def __bytes__(self):
-        return self.to_bytes(2)
+        return self.to_bytes(2, "big")
 
 
 @unique
@@ -125,7 +125,7 @@ class HandshakeType(IntEnum):
     MESSAGE_HASH = 254
 
     def __bytes__(self):
-        return self.to_bytes()
+        return self.to_bytes(1, "big")
 
 
 @unique
@@ -165,7 +165,7 @@ class NamedGroup(IntEnum):
     GREASE_FA = 0xFAFA
 
     def __bytes__(self):
-        return self.to_bytes(2)
+        return self.to_bytes(2, "big")
 
 
 @unique
@@ -194,7 +194,7 @@ class ProtocolVersion(IntEnum):
     GREASE_FA = 0xFAFA
 
     def __bytes__(self):
-        return self.to_bytes(2)
+        return self.to_bytes(2, "big")
 
 
 @unique
@@ -230,4 +230,4 @@ class SignatureScheme(IntEnum):
     ECDSA_SHA1 = 0x0203
 
     def __bytes__(self):
-        return self.to_bytes(2)
+        return self.to_bytes(2, "big")
