@@ -34,7 +34,7 @@ class AlertDescription(IntEnum):
     NO_APPLICATION_PROTOCOL = 120
 
     def __bytes__(self):
-        return self.to_bytes()
+        return self.to_bytes(1, "big")
 
 
 @unique
