@@ -1,15 +1,16 @@
 from dataclasses import dataclass
 
 from buffer import Buffer
-from const import AlertDescription, AlertLevel
+from const import AlertDescription as Description
+from const import AlertLevel as Level
 
 
 @dataclass
 class Alert:
     """https://datatracker.ietf.org/doc/html/rfc8446#section-6"""
 
-    level: AlertLevel
-    description: AlertDescription
+    level: Level
+    description: Description
 
     def __bytes__(self):
         return bytes(self.level) + bytes(self.description)
@@ -21,7 +22,7 @@ class Alert:
 
         buf = Buffer(payload)
 
-        level = AlertLevel(buf.pull_uint8())
-        description = AlertDescription(buf.pull_uint8())
+        level = Level(buf.pull_uint8())
+        description = Description(buf.pull_uint8())
 
         return cls(level, description)
