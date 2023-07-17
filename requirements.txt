@@ -1,2 +1,5 @@
+black
 cryptography
+isort
+pylint
 pytest
