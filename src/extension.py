@@ -1,11 +1,12 @@
 from dataclasses import dataclass, field
 from typing import Protocol, Self, Sequence
 
-from buffer import Buffer
-from const import ExtensionType, NamedGroup, ProtocolVersion, SignatureScheme
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec, x25519
-from variable import seq_var_bytes, var_bytes
+
+from buffer import Buffer
+from const import ExtensionType, NamedGroup, ProtocolVersion, SignatureScheme
+from variable import len_bytes
 
 
 class ExtensionData(Protocol):
@@ -32,7 +33,7 @@ class Extension:
         object.__setattr__(self, "extension_type", self.extension_data.extension_type)
 
     def __bytes__(self):
-        return bytes(self.extension_type) + var_bytes(self.extension_data, 2)
+        return bytes(self.extension_type) + len_bytes(self.extension_data, 2)
 
     @classmethod
     def from_bytes(cls, encoded_extensions: bytes):
@@ -95,8 +96,9 @@ class ServerNameList(ExtensionData):
     host_name: str
 
     def __bytes__(self):
-        SERVER_NAME = b"\x00"
-        return var_bytes(SERVER_NAME + var_bytes(self.host_name.encode(), 2), 2)
+        server_name = b"\x00"
+        host_name = self.host_name.encode()
+        return len_bytes(server_name + len_bytes(host_name, 2), 2)
 
     @classmethod
     def from_bytes(cls, encoded_extension_data: bytes):
@@ -121,7 +123,7 @@ class NamedGroupList(ExtensionData):
     named_group_list: Sequence[NamedGroup]
 
     def __bytes__(self):
-        return seq_var_bytes(self.named_group_list, 2)
+        return len_bytes(self.named_group_list, 2)
 
     @classmethod
     def from_bytes(cls, encoded_extension_data: bytes):
@@ -146,7 +148,7 @@ class SignatureSchemeList(ExtensionData):
     supported_signature_algorithms: Sequence[SignatureScheme]
 
     def __bytes__(self):
-        return seq_var_bytes(self.supported_signature_algorithms, 2)
+        return len_bytes(self.supported_signature_algorithms, 2)
 
     @classmethod
     def from_bytes(cls, encoded_extension_data: bytes):
@@ -199,7 +201,7 @@ class KeyShareEntry:
             raise ValueError("Unsupported key")
 
     def __bytes__(self):
-        return bytes(self.group) + var_bytes(self.key_exchange, 2)
+        return bytes(self.group) + len_bytes(self.key_exchange, 2)
 
 
 @dataclass(frozen=True)
@@ -214,7 +216,7 @@ class KeyShareClientHello(ExtensionData):
         assert (len(set(l)) - len(l)) == 0
 
     def __bytes__(self):
-        return seq_var_bytes([bytes(i.key_exchange) for i in self.client_shares], 2)
+        return len_bytes([bytes(i.key_exchange) for i in self.client_shares], 2)
 
     @classmethod
     def from_bytes(cls, encoded_extension_data: bytes):
@@ -264,7 +266,7 @@ class KeyShareServerHello(ExtensionData):
     server_share: KeyShareEntry
 
     def __bytes__(self):
-        return var_bytes(self.server_share, 2)
+        return len_bytes(self.server_share, 2)
 
     @classmethod
     def from_bytes(cls, encoded_extension_data: bytes):
@@ -302,11 +304,10 @@ class SupportedVersions(ExtensionData):
 
     def __bytes__(self):
         if self.versions:
-            return seq_var_bytes([bytes(i) for i in self.versions], 1)
-        elif self.selected_version:
+            return len_bytes([bytes(i) for i in self.versions], 1)
+        if self.selected_version:
             return bytes(self.selected_version)
-        else:
-            raise ValueError("versions or selected_version must be set")
+        raise ValueError("versions or selected_version must be set")
 
     @classmethod
     def from_bytes(cls, encoded_extension_data: bytes):
@@ -315,9 +316,9 @@ class SupportedVersions(ExtensionData):
 
         if buf.capacity == 2:
             return cls(None, ProtocolVersion(buf.pull_uint16()))
-        else:
-            buf = Buffer(buf.pull_bytes_with_uint8_length())
-            versions: list[ProtocolVersion] = []
-            while buf.capacity > 0:
-                versions.append(ProtocolVersion(buf.pull_uint16()))
-            return cls(versions, None)
+
+        buf = Buffer(buf.pull_bytes_with_uint8_length())
+        versions: list[ProtocolVersion] = []
+        while buf.capacity > 0:
+            versions.append(ProtocolVersion(buf.pull_uint16()))
+        return cls(versions, None)

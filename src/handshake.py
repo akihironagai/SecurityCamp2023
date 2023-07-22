@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from typing import Protocol, Sequence
 
+from buffer import Buffer
 from const import CipherSuite, HandshakeType
 from extension import Extension
-from variable import seq_var_bytes, var_bytes
+from variable import len_bytes
 
 
 @dataclass(frozen=True)
@@ -31,9 +32,9 @@ class ClientHello(HandshakeMessage):
             b"\x03\x03"  # legacy_version
             + self.random
             + b"\x00"  # legacy_session_id
-            + seq_var_bytes(self.cipher_suites, 2)
+            + len_bytes(self.cipher_suites, 2)
             + b"\x01\x00"  # legacy_compression_methods
-            + seq_var_bytes(self.extensions, 2)
+            + len_bytes(self.extensions, 2)
         )
 
 
@@ -52,19 +53,36 @@ class ServerHello(HandshakeMessage):
         return (
             b"\x03\x03"  # legacy_version
             + self.random
-            + var_bytes(self.legacy_session_id_echo, 1)
+            + len_bytes(self.legacy_session_id_echo, 1)
             + bytes(self.cipher_suite)
             + b"\x00"  # legacy_compression_method
-            + seq_var_bytes(self.extensions, 2)
+            + len_bytes(self.extensions, 2)
         )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Handshake:
     """https://datatracker.ietf.org/doc/html/rfc8446#section-4"""
 
     handshake_type: HandshakeType
     message: HandshakeMessage
 
-    def __bytes__(self):
-        return bytes(self.handshake_type) + var_bytes(self.message, 3)
+    @classmethod
+    def from_bytes(cls, payload: bytes):
+        if len(payload) < 4:
+            raise ValueError("Handshake must be at least 4 bytes long")
+
+        buf = Buffer(payload)
+
+        handshake_type = HandshakeType(buf.pull_uint8())
+        encoded_message = buf.pull_bytes_with_uint24_length()
+
+        match handshake_type:
+            case HandshakeType.CLIENT_HELLO:
+                message = ClientHello.from_bytes(encoded_message)
+            case HandshakeType.SERVER_HELLO:
+                message = ServerHello.from_bytes(encoded_message)
+            case _:
+                raise NotImplementedError
+
+        return cls(handshake_type, message)

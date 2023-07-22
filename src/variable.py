@@ -10,16 +10,12 @@ class SequenceVariable(Generic[T]):
     value_size: int = 1
 
     def __bytes__(self):
-        return len(self).to_bytes(self.value_size) + b"".join(
-            bytes(v) for v in self.value
-        )
+        value = b"".join(bytes(v) for v in self.value)
+        value_size = len(self).to_bytes(self.value_size, "big")
+        return value_size + value
 
     def __len__(self):
         return sum(len(bytes(v)) for v in self.value)
-
-
-def seq_var_bytes(value: Sequence[T], value_size: int = 1):
-    return bytes(SequenceVariable(value, value_size))
 
 
 @dataclass(frozen=True)
@@ -34,5 +30,7 @@ class BytesVariable:
         return len(bytes(self.value))
 
 
-def var_bytes(value: SupportsBytes, value_size: int = 1):
-    return bytes(BytesVariable(value, value_size))
+def len_bytes(value: SupportsBytes | Sequence[T], value_size: int = 1):
+    if isinstance(value, SupportsBytes):
+        return bytes(BytesVariable(value, value_size))
+    return bytes(SequenceVariable(value, value_size))
